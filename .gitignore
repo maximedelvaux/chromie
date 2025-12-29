@@ -1,0 +1,12 @@
+node_modules/
+*.log
+.DS_Store
+
+# Keep the music directory structure but ignore actual audio files
+music/**/*.mp3
+music/**/*.wav
+music/**/*.flac
+music/**/*.ogg
+music/**/*.m4a
+music/**/*.aac
+music/**/*.wma

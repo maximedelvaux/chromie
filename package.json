@@ -1,0 +1,48 @@
+{
+  "name": "chromie",
+  "version": "1.0.0",
+  "description": "A 24-hour music player - different playlists for every hour of the day",
+  "main": "src/index.js",
+  "bin": {
+    "chromie": "./bin/chromie.js"
+  },
+  "type": "module",
+  "files": [
+    "bin",
+    "src"
+  ],
+  "scripts": {
+    "start": "node bin/chromie.js"
+  },
+  "keywords": [
+    "music",
+    "player",
+    "cli",
+    "24-hour",
+    "ambient",
+    "playlist",
+    "hourly",
+    "audio",
+    "mp3",
+    "lofi",
+    "background"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "play-sound": "^1.1.6"
+  },
+  "author": "Maxime Delvaux",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maximedelvaux/chromie.git"
+  },
+  "bugs": {
+    "url": "https://github.com/maximedelvaux/chromie/issues"
+  },
+  "homepage": "https://github.com/maximedelvaux/chromie#readme"
+}

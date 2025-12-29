@@ -1,0 +1,8 @@
+# Don't publish music directory to npm
+music/
+
+# Dev files
+.gitignore
+.github/
+*.log
+.DS_Store

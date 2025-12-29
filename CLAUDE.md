@@ -1,0 +1,3 @@
+# Chromie
+
+This project is a simple 24 hour music player. For each hour of the day there is a directory where user add songs and they are played depending on the time of the day. This should be a Rust CLI app. When starting the program it should just display the hour of the day in the CLI and start the player. Songs should be looped it must be a neverending playing. It also should be super easy to install so as much as I think rust is a cool language, if its easier to deploy in Node using npm let's be it.
