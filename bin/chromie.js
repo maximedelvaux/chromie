@@ -21,9 +21,11 @@ program
   .option('-h, --hour <number>', 'force specific hour (0-23)', parseInt)
   .option('-i, --init', 'create 24 hour directories with weather subfolders')
   .option('-l, --list', 'list songs for current hour and weather')
+  .option('-n, --no-weather', 'disable weather-specific songs (base songs only)')
   .option('-o, --open', 'open music folder in file explorer')
   .option('-p, --path', 'print music folder path')
-  .option('-w, --weather', 'show current weather info');
+  .option('-W, --only-weather', 'play only weather-specific songs (no base songs)')
+  .option('-w, --weather-info', 'show current weather info');
 
 program.parse();
 
@@ -69,7 +71,7 @@ async function main() {
   }
 
   // Show weather info
-  if (options.weather) {
+  if (options.weatherInfo) {
     console.log('  Fetching weather data...');
     const weather = await weatherService.getWeather();
     if (weather) {
@@ -93,10 +95,15 @@ async function main() {
     process.exit(1);
   }
 
+  // Check playback mode options
+  const weatherDisabled = options.weather === false;
+  const onlyWeather = options.onlyWeather === true;
+  const scannerOptions = { onlyWeather };
+
   // List songs with weather context
   if (options.list) {
-    const weather = await weatherService.getWeather();
-    const songs = await scanner.getSongsForHour(currentHour, weather?.condition);
+    const weather = weatherDisabled ? null : await weatherService.getWeather();
+    const songs = await scanner.getSongsForHour(currentHour, weather?.condition, scannerOptions);
     display.showList(currentHour, songs, weather);
     process.exit(0);
   }
@@ -104,19 +111,21 @@ async function main() {
   // Auto-init on first run
   await scanner.initDirectories();
 
-  // Fetch initial weather
-  console.log('  Fetching weather data...');
-  const initialWeather = await weatherService.getWeather();
-
-  if (!initialWeather) {
-    display.showWeatherError();
+  // Fetch initial weather (unless disabled)
+  let initialWeather = null;
+  if (!weatherDisabled) {
+    console.log('  Fetching weather data...');
+    initialWeather = await weatherService.getWeather();
+    if (!initialWeather) {
+      display.showWeatherError();
+    }
   }
 
   display.showHeader(currentHour, initialWeather);
   display.showMusicDir(musicDir);
 
-  const player = new Player(scanner, display);
-  const scheduler = new Scheduler(player, display, weatherService);
+  const player = new Player(scanner, display, scannerOptions);
+  const scheduler = new Scheduler(player, display, weatherDisabled ? null : weatherService);
 
   process.on('SIGINT', () => {
     display.showShutdown();

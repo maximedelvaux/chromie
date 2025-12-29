@@ -36,11 +36,12 @@ export class Scanner {
     }
   }
 
-  async getSongsForHour(hour, weather = null) {
+  async getSongsForHour(hour, weather = null, options = {}) {
     const hourDir = this.getHourDirectory(hour);
+    const { onlyWeather = false } = options;
 
-    // Get base songs from hour directory
-    const baseSongs = await this.getSongsFromDirectory(hourDir);
+    // Get base songs from hour directory (unless onlyWeather mode)
+    const baseSongs = onlyWeather ? [] : await this.getSongsFromDirectory(hourDir);
 
     // Get weather-specific songs if weather is provided
     let weatherSongs = [];

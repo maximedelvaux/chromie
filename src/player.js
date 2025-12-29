@@ -51,9 +51,10 @@ const player = playSound(playerConfig.player ? { player: playerConfig.player } :
 const playerArgs = playerConfig.args || [];
 
 export class Player {
-  constructor(scanner, display) {
+  constructor(scanner, display, scannerOptions = {}) {
     this.scanner = scanner;
     this.display = display;
+    this.scannerOptions = scannerOptions;
     this.currentHour = null;
     this.currentWeather = null;
     this.isRunning = false;
@@ -112,7 +113,7 @@ export class Player {
       }
 
       const weatherCondition = this.currentWeather?.condition || null;
-      const songs = await this.scanner.getSongsForHour(this.currentHour, weatherCondition);
+      const songs = await this.scanner.getSongsForHour(this.currentHour, weatherCondition, this.scannerOptions);
 
       if (songs.length === 0) {
         this.display.showEmpty(this.currentHour, this.currentWeather);
