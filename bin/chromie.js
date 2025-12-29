@@ -4,7 +4,7 @@ import { Command } from 'commander';
 import path from 'path';
 import os from 'os';
 import { exec } from 'child_process';
-import { Scanner, Player, Scheduler, Display } from '../src/index.js';
+import { Scanner, Player, Scheduler, Display, Weather } from '../src/index.js';
 
 const program = new Command();
 
@@ -13,16 +13,17 @@ const defaultMusicDir = path.join(os.homedir(), 'chromie-music');
 
 program
   .name('chromie')
-  .description('A 24-hour music player - different playlists for every hour of the day')
-  .version('1.0.0');
+  .description('A 24-hour weather-aware music player')
+  .version('1.1.0');
 
 program
   .option('-d, --dir <path>', 'music directory path', defaultMusicDir)
   .option('-h, --hour <number>', 'force specific hour (0-23)', parseInt)
-  .option('-i, --init', 'create 24 hour directories')
-  .option('-l, --list', 'list songs for current hour')
+  .option('-i, --init', 'create 24 hour directories with weather subfolders')
+  .option('-l, --list', 'list songs for current hour and weather')
   .option('-o, --open', 'open music folder in file explorer')
-  .option('-p, --path', 'print music folder path');
+  .option('-p, --path', 'print music folder path')
+  .option('-w, --weather', 'show current weather info');
 
 program.parse();
 
@@ -51,6 +52,7 @@ async function main() {
   const musicDir = path.resolve(options.dir);
   const display = new Display();
   const scanner = new Scanner(musicDir);
+  const weatherService = new Weather();
 
   // Print path only
   if (options.path) {
@@ -60,10 +62,21 @@ async function main() {
 
   // Open folder in file explorer
   if (options.open) {
-    // Initialize directories if they don't exist
     await scanner.initDirectories();
     console.log(`Opening: ${musicDir}`);
     openFolder(musicDir);
+    process.exit(0);
+  }
+
+  // Show weather info
+  if (options.weather) {
+    console.log('  Fetching weather data...');
+    const weather = await weatherService.getWeather();
+    if (weather) {
+      display.showWeatherInfo(weather);
+    } else {
+      display.showWeatherError();
+    }
     process.exit(0);
   }
 
@@ -80,20 +93,30 @@ async function main() {
     process.exit(1);
   }
 
+  // List songs with weather context
   if (options.list) {
-    const songs = await scanner.getSongsForHour(currentHour);
-    display.showList(currentHour, songs);
+    const weather = await weatherService.getWeather();
+    const songs = await scanner.getSongsForHour(currentHour, weather?.condition);
+    display.showList(currentHour, songs, weather);
     process.exit(0);
   }
 
   // Auto-init on first run
   await scanner.initDirectories();
 
-  display.showHeader(currentHour);
+  // Fetch initial weather
+  console.log('  Fetching weather data...');
+  const initialWeather = await weatherService.getWeather();
+
+  if (!initialWeather) {
+    display.showWeatherError();
+  }
+
+  display.showHeader(currentHour, initialWeather);
   display.showMusicDir(musicDir);
 
   const player = new Player(scanner, display);
-  const scheduler = new Scheduler(player, display);
+  const scheduler = new Scheduler(player, display, weatherService);
 
   process.on('SIGINT', () => {
     display.showShutdown();
@@ -110,12 +133,12 @@ async function main() {
   });
 
   if (options.hour !== undefined) {
-    scheduler.startWithHour(options.hour);
+    await scheduler.startWithHour(options.hour);
   } else {
-    scheduler.start();
+    await scheduler.start();
   }
 
-  await player.start(currentHour);
+  await player.start(currentHour, initialWeather);
 }
 
 main().catch(err => {

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { WEATHER_CONDITIONS } from './weather.js';
 
 const SUPPORTED_FORMATS = ['.mp3', '.wav', '.flac', '.ogg', '.m4a', '.aac', '.wma'];
 
@@ -13,28 +14,67 @@ export class Scanner {
     return path.join(this.musicDir, hourStr);
   }
 
-  async getSongsForHour(hour) {
-    const hourDir = this.getHourDirectory(hour);
+  getWeatherDirectory(hour, weather) {
+    return path.join(this.getHourDirectory(hour), weather);
+  }
 
-    if (!fs.existsSync(hourDir)) {
+  async getSongsFromDirectory(dir) {
+    if (!fs.existsSync(dir)) {
       return [];
     }
 
     try {
-      const files = await fs.promises.readdir(hourDir);
-      const songs = files
+      const files = await fs.promises.readdir(dir);
+      return files
         .filter(file => {
           const ext = path.extname(file).toLowerCase();
           return SUPPORTED_FORMATS.includes(ext);
         })
-        .sort((a, b) => a.localeCompare(b))
-        .map(file => path.join(hourDir, file));
-
-      return songs;
+        .map(file => path.join(dir, file));
     } catch (err) {
-      console.error(`Error reading directory ${hourDir}:`, err.message);
       return [];
     }
+  }
+
+  async getSongsForHour(hour, weather = null) {
+    const hourDir = this.getHourDirectory(hour);
+
+    // Get base songs from hour directory
+    const baseSongs = await this.getSongsFromDirectory(hourDir);
+
+    // Get weather-specific songs if weather is provided
+    let weatherSongs = [];
+    if (weather && WEATHER_CONDITIONS.includes(weather)) {
+      const weatherDir = this.getWeatherDirectory(hour, weather);
+      weatherSongs = await this.getSongsFromDirectory(weatherDir);
+    }
+
+    // Merge and sort all songs
+    const allSongs = [...baseSongs, ...weatherSongs];
+    allSongs.sort((a, b) => {
+      const nameA = path.basename(a).toLowerCase();
+      const nameB = path.basename(b).toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+
+    return allSongs;
+  }
+
+  async getSongCounts(hour, weather = null) {
+    const hourDir = this.getHourDirectory(hour);
+    const baseSongs = await this.getSongsFromDirectory(hourDir);
+
+    let weatherSongs = [];
+    if (weather && WEATHER_CONDITIONS.includes(weather)) {
+      const weatherDir = this.getWeatherDirectory(hour, weather);
+      weatherSongs = await this.getSongsFromDirectory(weatherDir);
+    }
+
+    return {
+      base: baseSongs.length,
+      weather: weatherSongs.length,
+      total: baseSongs.length + weatherSongs.length
+    };
   }
 
   async initDirectories() {
@@ -46,6 +86,14 @@ export class Scanner {
       const hourDir = this.getHourDirectory(hour);
       if (!fs.existsSync(hourDir)) {
         await fs.promises.mkdir(hourDir, { recursive: true });
+      }
+
+      // Create weather subdirectories
+      for (const weather of WEATHER_CONDITIONS) {
+        const weatherDir = this.getWeatherDirectory(hour, weather);
+        if (!fs.existsSync(weatherDir)) {
+          await fs.promises.mkdir(weatherDir, { recursive: true });
+        }
       }
     }
   }

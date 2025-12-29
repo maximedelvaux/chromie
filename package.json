@@ -1,7 +1,7 @@
 {
   "name": "chromie",
-  "version": "1.0.0",
-  "description": "A 24-hour music player - different playlists for every hour of the day",
+  "version": "1.1.0",
+  "description": "A 24-hour weather-aware music player - different playlists for every hour and weather condition",
   "main": "src/index.js",
   "bin": {
     "chromie": "./bin/chromie.js"
@@ -25,7 +25,11 @@
     "audio",
     "mp3",
     "lofi",
-    "background"
+    "background",
+    "weather",
+    "rain",
+    "sunny",
+    "atmosphere"
   ],
   "engines": {
     "node": ">=18.0.0"

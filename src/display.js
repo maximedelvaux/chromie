@@ -5,18 +5,31 @@ export class Display {
     this.currentSongLine = '';
   }
 
-  showHeader(hour) {
+  showHeader(hour, weather = null) {
     const hourStr = hour.toString().padStart(2, '0');
     const period = hour < 12 ? 'AM' : 'PM';
     const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
 
     console.log('');
-    console.log(chalk.cyan.bold('  ╔═══════════════════════════════════════╗'));
-    console.log(chalk.cyan.bold('  ║') + chalk.white.bold('            C H R O M I E              ') + chalk.cyan.bold('║'));
-    console.log(chalk.cyan.bold('  ║') + chalk.gray('        24-Hour Music Player           ') + chalk.cyan.bold('║'));
-    console.log(chalk.cyan.bold('  ╚═══════════════════════════════════════╝'));
+    console.log(chalk.cyan.bold('  ╔═══════════════════════════════════════════════════╗'));
+    console.log(chalk.cyan.bold('  ║') + chalk.white.bold('                  C H R O M I E                    ') + chalk.cyan.bold('║'));
+    console.log(chalk.cyan.bold('  ║') + chalk.gray('            24-Hour Music Player                   ') + chalk.cyan.bold('║'));
+    console.log(chalk.cyan.bold('  ╚═══════════════════════════════════════════════════╝'));
     console.log('');
-    console.log(chalk.white('  Current Hour: ') + chalk.yellow.bold(`${hourStr}`) + chalk.gray(` (${hour12}:00 ${period} - ${hour12}:59 ${period})`));
+
+    let hourLine = chalk.white('  Current Hour: ') + chalk.yellow.bold(`${hourStr}`) + chalk.gray(` (${hour12}:00 ${period})`);
+
+    if (weather) {
+      const weatherStr = `${weather.emoji} ${weather.condition} (${weather.temperature}°C)`;
+      hourLine += chalk.white('  │  Weather: ') + chalk.cyan(weatherStr);
+    }
+
+    console.log(hourLine);
+
+    if (weather && weather.city) {
+      console.log(chalk.gray(`  Location: ${weather.city}, ${weather.country}`));
+    }
+
     console.log('');
   }
 
@@ -29,21 +42,63 @@ export class Display {
     console.log('');
   }
 
+  showSongCountWithWeather(counts, weather) {
+    if (weather && counts.weather > 0) {
+      const weatherLabel = weather.condition || 'weather';
+      console.log(
+        chalk.white('  Songs: ') +
+        chalk.cyan(`${counts.base} base`) +
+        chalk.gray(' + ') +
+        chalk.cyan(`${counts.weather} ${weatherLabel}`) +
+        chalk.gray(' = ') +
+        chalk.cyan.bold(`${counts.total} total`)
+      );
+    } else {
+      console.log(chalk.white('  Songs found: ') + chalk.cyan(counts.total.toString()));
+    }
+    console.log('');
+  }
+
   showNowPlaying(songPath, index, total) {
     const songName = songPath.split(/[/\\]/).pop();
     const progress = `(${index + 1}/${total})`;
     console.log(chalk.green('  ▶ Now Playing: ') + chalk.white(songName) + chalk.gray(` ${progress}`));
   }
 
-  showEmpty(hour) {
+  showEmpty(hour, weather = null) {
     const hourStr = hour.toString().padStart(2, '0');
-    console.log(chalk.yellow(`  No songs found in hour ${hourStr} directory.`));
+    let msg = `  No songs found in hour ${hourStr}`;
+    if (weather) {
+      msg += ` (${weather.condition})`;
+    }
+    msg += ' directory.';
+    console.log(chalk.yellow(msg));
     console.log(chalk.gray('  Waiting for songs... (checking every 30 seconds)'));
   }
 
   showHourChange(oldHour, newHour) {
     console.log('');
     console.log(chalk.magenta(`  Hour changed: ${oldHour.toString().padStart(2, '0')} → ${newHour.toString().padStart(2, '0')}`));
+  }
+
+  showWeatherChange(oldWeather, newWeather) {
+    console.log('');
+    const oldStr = oldWeather ? `${oldWeather.emoji} ${oldWeather.condition}` : 'unknown';
+    const newStr = `${newWeather.emoji} ${newWeather.condition}`;
+    console.log(chalk.blue(`  Weather changed: ${oldStr} → ${newStr}`));
+  }
+
+  showWeatherInfo(weather) {
+    console.log('');
+    console.log(chalk.cyan.bold('  Current Weather'));
+    console.log(chalk.white(`  ${weather.emoji} ${weather.condition.charAt(0).toUpperCase() + weather.condition.slice(1)}`));
+    console.log(chalk.white(`  Temperature: ${weather.temperature}°C`));
+    console.log(chalk.white(`  Location: ${weather.city}, ${weather.country}`));
+    console.log('');
+  }
+
+  showWeatherError() {
+    console.log(chalk.yellow('  Could not fetch weather data. Playing base songs only.'));
   }
 
   showError(message) {
@@ -55,14 +110,27 @@ export class Display {
   }
 
   showInitComplete(musicDir) {
-    console.log(chalk.green('  ✓ Created 24 hour directories in: ') + chalk.white(musicDir));
-    console.log(chalk.gray('  Add your music files to the corresponding hour folders (00-23)'));
+    console.log(chalk.green('  ✓ Created 24 hour directories with weather subfolders in:'));
+    console.log(chalk.white(`    ${musicDir}`));
+    console.log('');
+    console.log(chalk.gray('  Each hour folder now contains:'));
+    console.log(chalk.gray('    • Base folder for songs that always play'));
+    console.log(chalk.gray('    • sunny/  - songs for sunny weather'));
+    console.log(chalk.gray('    • rainy/  - songs for rainy weather'));
+    console.log(chalk.gray('    • cloudy/ - songs for cloudy weather'));
+    console.log(chalk.gray('    • snowy/  - songs for snowy weather'));
+    console.log(chalk.gray('    • foggy/  - songs for foggy weather'));
   }
 
-  showList(hour, songs) {
+  showList(hour, songs, weather = null) {
     const hourStr = hour.toString().padStart(2, '0');
     console.log('');
-    console.log(chalk.cyan(`  Songs for hour ${hourStr}:`));
+
+    let title = `  Songs for hour ${hourStr}`;
+    if (weather) {
+      title += ` (${weather.emoji} ${weather.condition})`;
+    }
+    console.log(chalk.cyan(title + ':'));
 
     if (songs.length === 0) {
       console.log(chalk.gray('  (no songs)'));
